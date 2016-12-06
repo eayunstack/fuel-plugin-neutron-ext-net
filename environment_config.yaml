@@ -1,0 +1,34 @@
+attributes:
+  # Show lbaas only for neutron
+  metadata:
+    restrictions:
+      - condition: cluster:net_provider != 'neutron'
+        action: hide
+
+  ext_provider:
+    type: "text"
+    value: "ext_provider"
+    label: "Provider Name"
+    description: "The name of external provider network"
+    weight: 10
+
+  ext_vlan_min:
+    type: "text"
+    value: "3000"
+    label: "vlan_min"
+    description: "Min vlan id for provider network"
+    weight: 10
+    regex:
+      source: '^([1-9]\d{0,2}|[1-3]\d{3}|40[0-9][0-5])$'
+      error: "Invaild vlan range, only allow 1-4095"
+
+  ext_vlan_max:
+    type: "text"
+    value: "3050"
+    label: "vlan_max"
+    description: "Max vlan id for provider network"
+    weight: 10
+    regex:
+      source: '^([1-9]\d{0,2}|[1-3]\d{3}|40[0-9][0-5])$'
+      error: "Invaild vlan range, only allow 1-4095"
+
