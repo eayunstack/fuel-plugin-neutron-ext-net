@@ -59,6 +59,10 @@ Puppet::Type.type(:ovs_patch_trunk).provide(:ovs) do
       trunks = trunks + ',' + orig_trunk
     end
 
+    # uniq array
+    trunks = trunks.split(',').uniq
+    trunks = trunks.join(',')
+
     begin
       ovs_vsctl('set', 'Port', "#{interface}", "trunks=#{trunks}")
     rescue puppet::executionfailure => errmsg
