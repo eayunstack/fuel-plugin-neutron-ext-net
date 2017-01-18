@@ -8,11 +8,9 @@ Puppet::Type.type(:ovs_patch_trunk).provide(:ovs) do
     br1 = resource[:bridges][0]
     br2 = resource[:bridges][1]
 
-    trunk1 = get_ovs_patch_trunks(br1, br2)
-    trunk2 = get_ovs_patch_trunks(br2, br1)
+    trunk = get_ovs_patch_trunks(br2, br1)
 
-    if !trunk_is_equal(trunk1, resource[:trunks]) or
-      !trunk_is_equal(trunk2, resource[:trunks])
+    if !trunk_is_equal(trunk, resource[:trunks])
       return false
     end
     return true
@@ -23,7 +21,6 @@ Puppet::Type.type(:ovs_patch_trunk).provide(:ovs) do
     br2 = resource[:bridges][1]
     ovs_trunks = cover_vlan_range_to_string(resource[:trunks])
 
-    set_ovs_patch_trunks(br1, br2, ovs_trunks)
     set_ovs_patch_trunks(br2, br1, ovs_trunks)
   end
 
@@ -32,7 +29,6 @@ Puppet::Type.type(:ovs_patch_trunk).provide(:ovs) do
     br2 = resource[:bridges][1]
     ovs_trunks = cover_vlan_range_to_string(resource[:trunks])
 
-    del_ovs_patch_trunks(br1, br2, ovs_trunks)
     del_ovs_patch_trunks(br2, br1, ovs_trunks)
   end
 
@@ -65,6 +61,7 @@ Puppet::Type.type(:ovs_patch_trunk).provide(:ovs) do
 
     begin
       ovs_vsctl('set', 'Port', "#{interface}", "trunks=#{trunks}")
+      ovs_vsctl('set', 'Port', "#{interface}", "vlan_mode=native-untagged")
     rescue puppet::executionfailure => errmsg
       raise puppet::executionfailure, "can't set patch '#{interface}' to trunks '#{trunks}':\n#{errmsg}"
     end
@@ -74,6 +71,7 @@ Puppet::Type.type(:ovs_patch_trunk).provide(:ovs) do
     interface = "#{br}--#{peer_br}"
     begin
       ovs_vsctl('remove', 'Port', "#{interface}", 'trunks' ,"#{trunks}")
+      ovs_vsctl('remove', 'Port', "#{interface}", 'vlan_mode', "native-untagged")
     rescue puppet::executionfailure => errmsg
       raise puppet::executionfailure, "can't delete patch '#{interface}'  trunks '#{trunks}':\n#{errmsg}"
     end
