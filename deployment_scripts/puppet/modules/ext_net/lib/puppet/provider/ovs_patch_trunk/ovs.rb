@@ -21,6 +21,7 @@ Puppet::Type.type(:ovs_patch_trunk).provide(:ovs) do
     br2 = resource[:bridges][1]
     ovs_trunks = cover_vlan_range_to_string(resource[:trunks])
 
+    set_ovs_patch_trunks(br1, br2, ovs_trunks)
     set_ovs_patch_trunks(br2, br1, ovs_trunks)
   end
 
@@ -29,6 +30,7 @@ Puppet::Type.type(:ovs_patch_trunk).provide(:ovs) do
     br2 = resource[:bridges][1]
     ovs_trunks = cover_vlan_range_to_string(resource[:trunks])
 
+    del_ovs_patch_trunks(br1, br2, ovs_trunks)
     del_ovs_patch_trunks(br2, br1, ovs_trunks)
   end
 
