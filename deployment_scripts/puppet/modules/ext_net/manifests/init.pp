@@ -66,10 +66,17 @@ class ext_net (
     enable => true,
   }
 
-  service { 'neutron-openvswitch-agent':
-    ensure   => running,
-    enable   => true,
-    provider => 'pacemaker'
+  if $fuel_settings['deployment_mode'] == 'ha_compact' {
+    service { 'neutron-openvswitch-agent':
+      ensure   => running,
+      enable   => true,
+      provider => 'pacemaker'
+    }
+  } else {
+    service { 'neutron-openvswitch-agent':
+      ensure   => running,
+      enable   => true,
+    }
   }
 
   L3agent_config<||> -> Plugin_config<||>
