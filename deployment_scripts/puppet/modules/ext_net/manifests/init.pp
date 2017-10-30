@@ -41,6 +41,18 @@ class ext_net (
   $ext_br_ex_name = $::fuel_settings['network_scheme']['roles']['ex']
   $ext_br_phy_name = get_ext_phy_bridge($::fuel_settings['network_scheme'])
 
+  # for update net04_ext network
+  $auth_url         = "http://${::fuel_settings['management_vip']}:5000/v2.0/"
+  $auth_username    = $::fuel_settings['access']['user']
+  $auth_password    = $::fuel_settings['access']['password']
+  $auth_tenant      = $::fuel_settings['access']['tenant']
+  $neutron_url      = "http://${::fuel_settings['management_vip']}:9696/v2.0/"
+  $net_name         = 'net04_ext'
+  $net_info         = get_network_info($auth_url, $auth_username, $auth_password, $auth_tenant, $neutron_url, $net_name)
+  $ext_provider     = $::fuel_settings['neutron-ext-net']['ext_provider']
+  $vlan_id          = $ext_vlan_max
+  $roles            = node_roles($::fuel_settings['nodes'], $::fuel_settings['uid'])
+
   ovs_patch_trunk { 'add-ovs-patch-trunk':
     ensure  => present,
     bridges => [$ext_br_ex_name, $ext_br_phy_name],
@@ -76,4 +88,50 @@ class ext_net (
     ~> Service['neutron-openvswitch-agent']
       ~> Service['neutron-server']
         ~> Ovs_patch_trunk['add-ovs-patch-trunk']
+
+  $is_ha_mode = $fuel_settings['deployment_mode'] ? { 'ha_compact' => true, default => false }
+
+  if ($is_ha_mode and member($roles, 'primary-controller') and $net_info) or (! $is_ha_mode and member($roles, 'controller') and $net_info) {
+
+    $net_type = $net_info['provider:network_type']
+
+    if $net_type != 'vlan' {
+      # net_id used in mysql_update.sql.erb
+      $net_id = $net_info['id']
+
+      if $is_ha_mode {
+        service { 'neutron-l3-agent':
+          ensure   => running,
+          enable   => true,
+          provider => 'pacemaker'
+        }
+      } else {
+        service { 'neutron-l3-agent':
+          ensure   => running,
+          enable   => true,
+        }
+      }
+
+      file { "/tmp/mysql_neutron_update.sql":
+        ensure  => present,
+        owner   => 'root',
+        group   => 'root',
+        mode    => '0640',
+        content => template('ext_net/mysql_update.sql.erb'),
+      }
+
+      exec { 'mysql_neutron_update':
+        command     => "mysql -uroot < /tmp/mysql_neutron_update.sql",
+        path        => '/usr/bin',
+        refreshonly => true,
+        user        => "root",
+        provider    => shell,
+        require     => Service['neutron-server'],
+        subscribe   => File["/tmp/mysql_neutron_update.sql"],
+        notify      => Service['neutron-l3-agent']
+      }
+
+    }
+
+  }
 }

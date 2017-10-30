@@ -1,0 +1,4 @@
+USE neutron;
+
+update ml2_network_segments set network_type='vlan',physical_network='<%= @ext_provider %>',segmentation_id=<%= @vlan_id %> where network_id='<%= @net_id %>';
+update ml2_vlan_allocations set allocated=1 where physical_network='<%= @ext_provider %>' and vlan_id=<%= @vlan_id %>;
